@@ -281,3 +281,72 @@ window.PLAN_ORIGINAL = {
     ]
   }
 };
+
+// Декор: картины, зеркала, цветы, растения, светильники (строятся в index.html по типу t).
+// w: стена (axis, c: координата грани, dir: в сторону комнаты), at: место вдоль стены, y: высота центра.
+(function () {
+  const HALLW = { axis: 'x', c: 0.26, dir: 1 }, DINW = { axis: 'x', c: 2.74, dir: 1 }, BATHW = { axis: 'x', c: 2.15, dir: -1 };
+  const BEDW = { axis: 'z', c: 0.25, dir: 1 }, MIDW = { axis: 'z', c: 3.85, dir: 1 };
+  // общее для обеих планировок: кухня, прихожая, ванная
+  const common = [
+    { t: 'kitchen' },
+    { t: 'mirror', w: HALLW, at: 6.97, y: 1.62, r: 0.32 },
+    { t: 'pic', w: HALLW, at: 7.90, y: 1.75, sw: 0.42, sh: 0.58, art: 1 },
+    { t: 'pic', w: HALLW, at: 6.03, y: 1.75, sw: 0.42, sh: 0.58, art: 3, not: ['scandi'] },
+    { t: 'flowers', x: 6.82, z: 0.41, y: 0.81, s: 1 },
+    { t: 'books', x: 7.14, z: 0.42, y: 0.81, rot: 0.3 },
+    { t: 'pic', w: DINW, at: 8.95, y: 1.78, sw: 0.36, sh: 0.5, art: 0 },
+    { t: 'pic', w: DINW, at: 9.66, y: 1.78, sw: 0.36, sh: 0.5, art: 1 },
+    { t: 'plant', kind: 'pot', x: 10.48, z: 3.66, y: 0.90, s: 1 },
+    { t: 'fruit', x: 10.44, z: 4.82, y: 0.90 },
+    { t: 'plant', kind: 'pot', x: 8.55, z: 6.343, y: 0.80, s: 0.7 },
+    { t: 'plant', kind: 'pot', x: 9.60, z: 6.343, y: 0.80, s: 0.7 },
+    { t: 'mirror', w: BATHW, at: 9.67, y: 1.50, sw: 0.55, sh: 0.75 },
+    { t: 'plant', kind: 'pot', x: 9.50, z: 1.93, y: 0.85, s: 0.7 }
+  ];
+  // консоль в прихожей под зеркалом
+  const consoleTable = [
+    [6.62, 0.27, 7.32, 0.57, 0.78, 0.81, 'woodDark'],
+    [6.64, 0.29, 6.67, 0.32, 0, 0.78, 'woodDark'], [7.27, 0.29, 7.30, 0.32, 0, 0.78, 'woodDark'],
+    [6.64, 0.52, 6.67, 0.55, 0, 0.78, 'woodDark'], [7.27, 0.52, 7.30, 0.55, 0, 0.78, 'woodDark']
+  ];
+  [window.PLAN, window.PLAN_ORIGINAL].forEach(function (p) { p.furniture.box = p.furniture.box.concat(consoleTable); });
+
+  window.PLAN.props = common.concat([
+    // гостиная
+    { t: 'pic', w: MIDW, at: 3.60, y: 1.65, sw: 1.15, sh: 0.80, art: 2 },
+    { t: 'plant', kind: 'tree', x: 6.05, z: 2.55, s: 0.85 },
+    { t: 'plant', kind: 'palm', x: 6.80, z: 5.00, s: 0.85 },
+    { t: 'flowers', x: 5.30, z: 3.58, y: 0.40, s: 0.85 },
+    { t: 'books', x: 5.08, z: 3.76, y: 0.40, rot: 0.5 },
+    { t: 'books', x: 4.36, z: 2.33, y: 0.45, rot: 0.1 },
+    { t: 'plant', kind: 'pot', x: 5.74, z: 2.33, y: 0.45, s: 1.1 },
+    { t: 'pendant', x: 5.20, z: 3.65, y: 2.42, r: 0.17 },
+    { t: 'plant', kind: 'pot', x: 5.50, z: 6.343, y: 0.80, s: 0.7 },
+    { t: 'flowers', x: 8.60, z: 4.80, y: 0.76, s: 1.05 },
+    // спальня
+    { t: 'pic', w: BEDW, at: 3.49, y: 1.80, sw: 0.55, sh: 0.72, art: 0 },
+    { t: 'pic', w: BEDW, at: 2.53, y: 1.80, sw: 0.36, sh: 0.50, art: 3 },
+    { t: 'pic', w: BEDW, at: 4.455, y: 1.80, sw: 0.36, sh: 0.50, art: 1 },
+    { t: 'tlamp', x: 0.47, z: 2.25, y: 0.50 },
+    { t: 'tlamp', x: 0.47, z: 4.65, y: 0.50 },
+    { t: 'plant', kind: 'palm', x: 3.25, z: 4.55, s: 0.8 },
+    { t: 'pendant', x: 2.20, z: 3.45, y: 2.42, r: 0.17 }
+  ]);
+  window.PLAN_ORIGINAL.props = common.concat([
+    // гостиная
+    { t: 'pic', w: BEDW, at: 2.20, y: 1.70, sw: 1.15, sh: 0.80, art: 2 },
+    { t: 'flowers', x: 1.98, z: 2.64, y: 0.40, s: 0.85 },
+    { t: 'books', x: 1.78, z: 2.80, y: 0.40, rot: 0.5 },
+    { t: 'books', x: 3.57, z: 2.62, y: 0.45, rot: 1.6 },
+    { t: 'plant', kind: 'pot', x: 3.57, z: 3.80, y: 0.45, s: 1.1 },
+    { t: 'plant', kind: 'palm', x: 3.25, z: 4.55, s: 0.8 },
+    { t: 'pendant', x: 2.00, z: 2.70, y: 2.42, r: 0.17 },
+    // спальня и кухня
+    { t: 'pic', w: MIDW, at: 4.34, y: 1.80, sw: 0.55, sh: 0.72, art: 0 },
+    { t: 'tlamp', x: 4.07, z: 3.12, y: 0.50 },
+    { t: 'tlamp', x: 4.07, z: 5.56, y: 0.50 },
+    { t: 'pendant', x: 5.60, z: 4.30, y: 2.42, r: 0.17 },
+    { t: 'flowers', x: 8.25, z: 4.80, y: 0.76, s: 1.05 }
+  ]);
+})();

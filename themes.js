@@ -68,7 +68,7 @@
   // ----- французский стиль по отзыву: тёмное дерево везде, плитка на кухне, стекло, голубой или бордовый акцент -----
   const CHK = { pattern: 'checker', color: '#f1ece2', line: '#d8d2c6', dot: '#2b2a2c', size: 0.42 };
   const DARKWOOD = { style: 'herring', rgb: [112, 76, 50], vary: 0.12 };
-  const FR_BLUE = 0x7f9bb5, BORDO = 0x4f1822, DARK = 0x4a3324, BRASS = 0xb08d57;
+  const FR_BLUE = 0x7f9bb5, BORDO = 0x3d0f1a, DARK = 0x4a3324, BRASS = 0xb08d57;
   function french(o) {
     const base = {
       wall: 0xf0ebe1, floor: DARKWOOD, base: 0x4f3826,
@@ -103,7 +103,7 @@
       decor: [].concat(
         panel(W.splash, 0.9, 1.5, BORDO),
         molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 2, 0xffffff),
-        panel(W.bed, 0, 3, BORDO), molding(W.bed, 3, 0x6b323b),
+        panel(W.bed, 0, 3, BORDO), molding(W.bed, 3, 0x55222c),
         bath(0xece8e1)
       )
     }),
