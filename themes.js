@@ -7,12 +7,13 @@
   const W = {
     tv:      { axis: 'x', c: 2.15, a: 3.85, b: 6.30, dir: 1 },   // гостиная, стена с ТВ
     bed:     { axis: 'z', c: 0.25, a: 1.94, b: 5.05, dir: 1 },   // спальня, стена за изголовьем
-    splash:  { axis: 'z', c: 10.75, a: 2.74, b: 5.15, dir: -1 }, // кухня, фартук
+    splash:  { axis: 'z', c: 10.75, a: 2.74, b: 5.66, dir: -1 }, // кухня, фартук
+    splash2: { axis: 'x', c: 2.74, a: 9.20, b: 10.75, dir: 1 },  // кухня, фартук на угловой части
     bathR:   { axis: 'z', c: 10.75, a: 0.26, b: 2.15, dir: -1 },
     bathT:   { axis: 'x', c: 0.26, a: 8.59, b: 10.75, dir: 1 },
     bathB:   { axis: 'x', c: 2.15, a: 8.59, b: 10.75, dir: -1 },
     hallT:   { axis: 'x', c: 0.26, a: 5.45, b: 8.48, dir: 1 },   // прихожая, стена справа от входа
-    dining:  { axis: 'x', c: 2.74, a: 8.48, b: 10.13, dir: 1 }   // кухня, короб у стола
+    dining:  { axis: 'x', c: 2.74, a: 8.48, b: 9.18, dir: 1 }   // кухня, короб у стола
   };
   function strip(w, a, b, y0, y1, color, depth) {
     const d = (depth || T) * w.dir, c1 = Math.min(w.c, w.c + d), c2 = Math.max(w.c, w.c + d);
@@ -39,7 +40,18 @@
   }
   // настенная плитка: размер плитки [ширина, высота] в восьмом элементе накладки
   function tiled(arr, tw, th) { arr.forEach(function (b) { b[7] = [tw, th]; }); return arr; }
-  function bath(color) { return tiled([].concat(panel(W.bathR, 0, 3, color), panel(W.bathT, 0, 3, color), panel(W.bathB, 0, 3, color)), 0.6, 0.3); }
+  function splash(color) { return tiled(panel(W.splash, 0.9, 1.5, color).concat(panel(W.splash2, 0.9, 1.5, color)), 0.2, 0.1); }
+  // ванная: низ из бордового кабанчика, бордюр, светлый верх; стена у ванны шахматным узором из бордовой и светлой плитки
+  function bath(color) {
+    const B = 0x3d0f1a, out = [];
+    [W.bathT, W.bathB].forEach(function (w) {
+      out.push.apply(out, tiled(panel(w, 0, 1.2, B), 0.2, 0.1));
+      out.push.apply(out, panel(w, 1.2, 1.25, 0xb08d57));
+      out.push.apply(out, tiled(panel(w, 1.25, 3, color), 0.6, 0.3));
+    });
+    const pat = panel(W.bathR, 0, 3, 0x6b2231); pat[0][7] = [0.15, 0.15, 'checker', color];
+    return out.concat(pat);
+  }
 
   // ----- варианты по референсам пользователя (кухня, плитка у входа, перегородка) -----
   const OCT = { pattern: 'octagon', color: '#f4f2ed', line: '#cfcbc3', dot: '#1b1b1d', size: 0.25 };
@@ -90,8 +102,8 @@
       partition: { kind: 'glass', x: PX, z1: 3.35, z2: 5.43, color: 0x4f6a85, slide: [3.30, 4.50], track: [2.15, 5.43] },
       pal: { cabinet: FR_BLUE, cabinetUp: 0xf2eee6, fridge: 0xf2eee6, chair: FR_BLUE, accent: FR_BLUE, textile: FR_BLUE },
       decor: [].concat(
-        tiled(panel(W.splash, 0.9, 1.5, 0xf6f3ee), 0.2, 0.1),
-        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 2, 0xffffff),
+        splash(0xf6f3ee),
+        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 1, 0xffffff),
         panel(W.bed, 0, 3, 0xa9bccd), molding(W.bed, 3, 0xffffff),
         bath(0xece8e1)
       )
@@ -103,8 +115,8 @@
       partition: { kind: 'glass', x: PX, z1: 3.35, z2: 5.43, color: 0x1e1f21, slide: [3.30, 4.50], track: [2.15, 5.43] },
       pal: { cabinet: 0xece5d6, cabinetUp: 0xece5d6, fridge: 0xece5d6, counter: 0x3a2a20, chair: BORDO, accent: BORDO, textile: BORDO },
       decor: [].concat(
-        tiled(panel(W.splash, 0.9, 1.5, BORDO), 0.2, 0.1),
-        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 2, 0xffffff),
+        splash(BORDO),
+        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 1, 0xffffff),
         panel(W.bed, 0, 3, BORDO), molding(W.bed, 3, 0x55222c),
         bath(0xece8e1)
       )
@@ -115,8 +127,8 @@
       zones: [{ r: ENTRY, tile: OCT }, { r: KITCH, tile: OCT }],
       partition: { kind: 'glass', x: PX, z1: 3.35, z2: 5.43, color: MARENGO },
       decor: [].concat(
-        tiled(panel(W.splash, 0.9, 1.5, 0x5f6f86), 0.2, 0.1),
-        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 2, 0xffffff),
+        splash(0x5f6f86),
+        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 1, 0xffffff),
         panel(W.bed, 0, 3, 0xd9d2c6), molding(W.bed, 3, 0xffffff),
         bath(0xece8e1)
       )
@@ -129,7 +141,7 @@
       pal: { cabinet: MARENGO, cabinetUp: MARENGO, fridge: MARENGO, counter: 0xdcd5c8, wood: 0x33271f, chair: 0x5f8f7a, accent: 0xc08a3e,
              textile: 0x5f8f7a, vanity: MARENGO, coffee: 0x33271f },
       decor: [].concat(
-        tiled(panel(W.splash, 0.9, 1.5, 0xf4f1ec), 0.2, 0.1),
+        splash(0xf4f1ec),
         panel(W.tv, 0, 3, MARENGO), molding(W.tv, 3, 0x5e6e84),
         panel(W.bed, 0, 3, 0x8d9bb0), molding(W.bed, 3, 0xffffff),
         bath(0xece8e1)
@@ -142,7 +154,7 @@
       partition: { kind: 'slats', x: PX, z1: 3.95, z2: 5.43, color: WALNUT },
       pal: { cabinet: MARENGO, cabinetUp: 0xf0ece5, fridge: WALNUT, counter: 0xe6e1d8, chair: 0x6e2a33, accent: MARENGO, sofa: 0xcac3b8, sofaBack: 0xbdb5a8 },
       decor: [].concat(
-        tiled(panel(W.splash, 0.9, 1.5, 0x8d9bb0), 0.2, 0.1),
+        splash(0x8d9bb0),
         slats(W.tv, 0, 3, 0x5a3e2b, WALNUT),
         panel(W.bed, 0, 3, MARENGO), molding(W.bed, 3, 0x5e6e84),
         molding(W.hallT, 3, 0xffffff),
@@ -167,7 +179,7 @@
       },
       decor: [].concat(
         panel(W.bed, 0, 3, 0xb9c6b3),
-        tiled(panel(W.splash, 0.9, 1.5, 0xffffff), 0.2, 0.1),
+        splash(0xffffff),
         slats({ axis: 'x', c: 0.26, a: 5.45, b: 6.60, dir: 1 }, 0, 2.2, 0xf6f5f1, 0xd8b98c),
         bath(0xf1f0ec)
       )
@@ -190,7 +202,7 @@
       decor: [].concat(
         slats(W.tv, 0, 3, 0x4a3626, 0x7a5a3e),
         panel(W.bed, 0, 3, 0x55595e),
-        tiled(panel(W.splash, 0.9, 1.5, 0x2c2d2f), 0.2, 0.1),
+        splash(0x2c2d2f),
         panel(W.dining, 0, 3, 0x55595e),
         bath(0xa9a6a0)
       )
@@ -214,8 +226,8 @@
         molding(W.tv, 3, 0xffffff),
         panel(W.bed, 0, 3, 0xa9b6c0), molding(W.bed, 3, 0xffffff),
         molding(W.hallT, 3, 0xffffff),
-        molding(W.dining, 2, 0xffffff),
-        tiled(panel(W.splash, 0.9, 1.5, 0xf4f1ec), 0.2, 0.1),
+        molding(W.dining, 1, 0xffffff),
+        splash(0xf4f1ec),
         bath(0xece8e1)
       )
     }

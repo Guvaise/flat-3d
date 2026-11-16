@@ -432,6 +432,15 @@
         });
         baseTex.push(wtBase);
       }
+      if (b[7][2] === 'checker') {   // узор из плитки двух цветов
+        const ct = canvasTex(128, function (g, s) {
+          const c = [hex(b[6]), hex(b[7][3])], q = s / 2;
+          for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { g.fillStyle = c[(i + j) % 2]; g.fillRect(i * q, j * q, q, q); }
+          g.strokeStyle = 'rgba(236,232,224,.95)'; g.lineWidth = 2; g.strokeRect(0, 0, q, q); g.strokeRect(q, 0, q, q); g.strokeRect(0, q, q, q); g.strokeRect(q, q, q, q);
+        });
+        ct.repeat.set(Math.max(b[2] - b[0], b[3] - b[1]) / (2 * b[7][0]), (b[5] - b[4]) / (2 * b[7][1]));
+        return new THREE.MeshStandardMaterial({ map: ct, roughness: 0.2 });
+      }
       const t = wtBase.clone(); t.needsUpdate = true;
       t.repeat.set(Math.max(b[2] - b[0], b[3] - b[1]) / b[7][0], (b[5] - b[4]) / (2 * b[7][1]));
       return new THREE.MeshStandardMaterial({ color: b[6], map: t, roughness: 0.2 });
@@ -638,16 +647,19 @@
         add(new THREE.SphereGeometry(0.034, 12, 10), fm(f[2]), p.x + f[0], p.y + 0.05, p.z + f[1]);
       });
     }
-    function kitchen() {           // фасады, ручки, смеситель, конфорки
+    function kitchen() {           // фасады, ручки, смеситель, конфорки (гарнитур буквой Г)
       const dk = fm(0x25221f), st = fm('steel');
-      box(10.146, 0, 2.74, 10.152, 0.10, 5.15, dk, furn);
-      [3.34, 3.94, 4.54].forEach(function (z) {
+      box(10.146, 0, 3.34, 10.152, 0.10, 5.66, dk, furn); box(9.20, 0, 3.336, 10.15, 0.10, 3.342, dk, furn);
+      [3.34, 3.94, 4.50, 5.08].forEach(function (z) {
         box(10.147, 0.10, z - 0.003, 10.153, 0.86, z + 0.003, dk, furn); box(10.397, 1.50, z - 0.003, 10.403, 2.62, z + 0.003, dk, furn);
       });
-      [3.04, 3.64, 4.24, 4.845].forEach(function (z) { box(10.128, 0.775, z - 0.09, 10.148, 0.79, z + 0.09, st, furn); });
-      add(new THREE.CylinderGeometry(0.012, 0.012, 0.26, 10), st, 10.64, 1.03, 3.13);
-      add(new THREE.CylinderGeometry(0.01, 0.01, 0.16, 10), st, 10.565, 1.16, 3.13).rotation.z = Math.PI / 2;
-      [[10.33, 4.09], [10.57, 4.09], [10.33, 4.36], [10.57, 4.36]].forEach(function (k) {
+      [3.64, 4.22, 4.79, 5.37].forEach(function (z) { box(10.128, 0.775, z - 0.09, 10.148, 0.79, z + 0.09, st, furn); });
+      box(9.672, 0.10, 3.337, 9.678, 0.86, 3.343, dk, furn);
+      [9.44, 9.91].forEach(function (x) { box(x - 0.09, 0.775, 3.342, x + 0.09, 0.79, 3.362, st, furn); });
+      [9.60, 10.00].forEach(function (x) { box(x - 0.003, 1.50, 3.087, x + 0.003, 2.62, 3.093, dk, furn); });
+      add(new THREE.CylinderGeometry(0.012, 0.012, 0.26, 10), st, 10.64, 1.03, 3.64);
+      add(new THREE.CylinderGeometry(0.01, 0.01, 0.16, 10), st, 10.565, 1.16, 3.64).rotation.z = Math.PI / 2;
+      [[10.33, 4.66], [10.57, 4.66], [10.33, 4.92], [10.57, 4.92]].forEach(function (k) {
         add(new THREE.CylinderGeometry(0.07, 0.07, 0.006, 24), fm(0x3a3a3c), k[0], 0.913, k[1]);
       });
     }
