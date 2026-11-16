@@ -54,7 +54,7 @@
   <h1>Квартира 57,2 м²</h1>
   Кликните, чтобы войти<br>
   W A S D: ходьба, мышь: осмотреться, Shift: быстрее<br>
-  Цифры от 1 до 6: вариант ремонта, P: исходная или новая планировка, T: вид сверху, M: мебель<br>
+  Цифры: вариант ремонта, P: исходная или новая планировка, T: вид сверху, M: мебель<br>
   На телефоне: левая половина экрана ходьба, правая осмотр
 </div></div>
 
@@ -163,6 +163,9 @@
             g.beginPath(); g.ellipse(s * 0.085, 0, s * 0.06, s * 0.028, 0, 0, Math.PI * 2); g.fill(); g.restore();
           }
         });
+      } else if (t.pattern === 'checker') {   // шахматка по диагонали
+        g.fillStyle = t.dot; g.beginPath(); g.moveTo(s / 2, 0); g.lineTo(s, s / 2); g.lineTo(s / 2, s); g.lineTo(0, s / 2); g.closePath(); g.fill();
+        g.strokeStyle = t.line; g.lineWidth = 1.5; g.stroke();
       } else { g.strokeStyle = t.line; g.lineWidth = 3; g.strokeRect(0, 0, s, s); }
     });
   }
@@ -171,7 +174,7 @@
   // ---------- построение сцены под выбранный стиль ----------
   let root = null, colliders = [], ceiling, caps, furn, labels, showFurn = !qs.get('nofurn'), topMode = false;
   let themeIdx = 0, baseTex = [];
-  try { themeIdx = +(localStorage.getItem('aptStyle2') || 0) || 0; } catch (e) {}
+  try { themeIdx = +(localStorage.getItem('aptStyle3') || 0) || 0; } catch (e) {}
   if (qs.get('style') !== null) themeIdx = +qs.get('style') || 0;
   if (!THEMES[themeIdx]) themeIdx = 0;
 
@@ -437,7 +440,7 @@
   function toggleFurn() { showFurn = !showFurn; applyMode(); }
   function setTheme(i) {
     if (!THEMES[i]) return;
-    themeIdx = i; try { localStorage.setItem('aptStyle2', i); } catch (e) {}
+    themeIdx = i; try { localStorage.setItem('aptStyle3', i); } catch (e) {}
     build();
   }
   THEMES.forEach(function (t, i) {

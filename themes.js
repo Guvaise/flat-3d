@@ -65,7 +65,48 @@
     return t;
   }
 
+  // ----- французский стиль по отзыву: тёмное дерево везде, плитка на кухне, стекло, голубой или бордовый акцент -----
+  const CHK = { pattern: 'checker', color: '#f1ece2', line: '#d8d2c6', dot: '#2b2a2c', size: 0.42 };
+  const DARKWOOD = { style: 'herring', rgb: [112, 76, 50], vary: 0.12 };
+  const FR_BLUE = 0x7f9bb5, BORDO = 0x4f1822, DARK = 0x4a3324, BRASS = 0xb08d57;
+  function french(o) {
+    const base = {
+      wall: 0xf0ebe1, floor: DARKWOOD, base: 0x4f3826,
+      baseboard: { h: 0.14, color: 0xffffff }, cornice: { h: 0.12, d: 0.08, color: 0xffffff },
+      pal: Object.assign({ wood: DARK, woodDark: 0x3d2a1d, coffee: BRASS, steel: BRASS, vanity: DARK, sofa: 0xd8d0c2, sofaBack: 0xccc3b4,
+                           shelf: 0xe9e1d0, bedBase: 0xd3c7b3, headboard: 0xc9bca6, rug: 0xe8e1d3, counter: 0xefeae0 }, o.pal)
+    };
+    for (const k in o) if (k !== 'pal') base[k] = o[k];
+    return ref(base);
+  }
+
   window.THEMES = [
+    french({
+      id: 'frBlue', name: 'Французский, голубой',
+      note: 'тёмный паркет ёлочкой везде, молдинги, голубая кухня и акценты. Плитка с четырёхлистником у входа и на кухне. Стеклянная перегородка с раздвижной створкой',
+      zones: [{ r: ENTRY, tile: FLO }, { r: KITCH, tile: FLO }],
+      partition: { kind: 'glass', x: PX, z1: 3.35, z2: 5.43, color: 0x4f6a85, slide: [3.30, 4.50], track: [2.15, 5.43] },
+      pal: { cabinet: FR_BLUE, cabinetUp: 0xf2eee6, fridge: 0xf2eee6, chair: FR_BLUE, accent: FR_BLUE, textile: FR_BLUE },
+      decor: [].concat(
+        panel(W.splash, 0.9, 1.5, 0xf6f3ee),
+        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 2, 0xffffff),
+        panel(W.bed, 0, 3, 0xa9bccd), molding(W.bed, 3, 0xffffff),
+        bath(0xece8e1)
+      )
+    }),
+    french({
+      id: 'frBordo', name: 'Французский, бордо',
+      note: 'тёмный паркет ёлочкой везде, молдинги, кремовая кухня с тёмной столешницей, бордовые акценты. Плитка шахматкой у входа и на кухне. Стеклянная перегородка в чёрной раме',
+      zones: [{ r: ENTRY, tile: CHK }, { r: KITCH, tile: CHK }],
+      partition: { kind: 'glass', x: PX, z1: 3.35, z2: 5.43, color: 0x1e1f21, slide: [3.30, 4.50], track: [2.15, 5.43] },
+      pal: { cabinet: 0xece5d6, cabinetUp: 0xece5d6, fridge: 0xece5d6, counter: 0x3a2a20, chair: BORDO, accent: BORDO, textile: BORDO },
+      decor: [].concat(
+        panel(W.splash, 0.9, 1.5, BORDO),
+        molding(W.tv, 3, 0xffffff), molding(W.hallT, 3, 0xffffff), molding(W.dining, 2, 0xffffff),
+        panel(W.bed, 0, 3, BORDO), molding(W.bed, 3, 0x6b323b),
+        bath(0xece8e1)
+      )
+    }),
     ref({
       id: 'refA', name: 'Орех и белый',
       note: 'кухня: ореховый низ, белый верх, сине-серый фартук. Плитка с чёрными вставками у входа и на кухне. Стеклянная перегородка маренго, неподвижная',
