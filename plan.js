@@ -314,7 +314,8 @@ window.PLAN_ORIGINAL = {
     // гостиная
     { t: 'pic', w: MIDW, at: 3.60, y: 1.65, sw: 1.15, sh: 0.80, art: 2 },
     { t: 'plant', kind: 'tree', x: 6.05, z: 2.55, s: 0.85 },
-    { t: 'plant', kind: 'palm', x: 6.80, z: 5.00, s: 0.85 },
+    { t: 'plant', kind: 'palm', x: 6.80, z: 5.00, s: 0.85, nobar: true },
+    { t: 'bar', bar: true },
     { t: 'flowers', x: 5.30, z: 3.58, y: 0.40, s: 0.85 },
     { t: 'books', x: 5.08, z: 3.76, y: 0.40, rot: 0.5 },
     { t: 'books', x: 4.36, z: 2.33, y: 0.45, rot: 0.1 },

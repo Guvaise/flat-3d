@@ -44,6 +44,7 @@
 </div>
 <div id="btns">
   <span id="styleBtns" style="display:contents"></span>
+  <button id="bBar">Барная стойка (B)</button>
   <button id="bNight">Вечер (N)</button>
   <button id="bPlan">План (P)</button>
   <button id="bTop">Вид сверху (T)</button>
@@ -55,13 +56,13 @@
   <h1>Квартира 57,2 м²</h1>
   Кликните, чтобы войти<br>
   W A S D: ходьба, мышь: осмотреться, Shift: быстрее<br>
-  Цифры: вариант ремонта, P: исходная или новая планировка, N: день или вечер, T: вид сверху, M: мебель<br>
+  Цифры: вариант ремонта, P: исходная или новая планировка, N: день или вечер, B: барная стойка вместо перегородки, T: вид сверху, M: мебель<br>
   На телефоне: левая половина экрана ходьба, правая осмотр
 </div></div>
 
 <script src="lib/three.min.js"></script>
-<script src="plan.js?v=8"></script>
-<script src="themes.js?v=8"></script>
+<script src="plan.js?v=9"></script>
+<script src="themes.js?v=9"></script>
 <script>
 (function () {
   const qs = new URLSearchParams(location.search);
@@ -197,7 +198,7 @@
 
   // ---------- построение сцены под выбранный стиль ----------
   let root = null, colliders = [], ceiling, caps, furn, labels, showFurn = !qs.get('nofurn'), topMode = false;
-  let themeIdx = 0, baseTex = [], night = !!qs.get('night'), marks;
+  let themeIdx = 0, baseTex = [], night = !!qs.get('night'), bar = !!qs.get('bar'), marks;
   try { themeIdx = +(localStorage.getItem('aptStyle3') || 0) || 0; } catch (e) {}
   if (qs.get('style') !== null) themeIdx = +qs.get('style') || 0;
   if (!THEMES[themeIdx]) themeIdx = 0;
@@ -368,7 +369,7 @@
       });
     }
     // перегородка между кухней и гостиной (стекло в раме или рейки)
-    if (th.partition && !P.noPartition) {
+    if (th.partition && !P.noPartition && !bar) {
       const p = th.partition, x = p.x;
       const pm = new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.5, metalness: p.kind === 'glass' ? 0.3 : 0 });
       const glassPanel = function (gx, z1, z2) {
@@ -742,14 +743,30 @@
       box(0.82, 1.99, 0.62, 1.80, 2.0, 0.64, fm('led'), furn, true);
       mark(1.05, 1.2, YEL);
     }
-    const PROP = { pic: picture, mirror: mirror, plant: plant, flowers: flowers, tlamp: tlamp, pendant: pendant, books: books, fruit: fruit, kitchen: kitchen,
+    function barCounter() {        // барная стойка на месте перегородки, от пилона в сторону прохода
+      const st = fm('steel');
+      add(rgeo(0.36, 1.01, 1.48, 0.02), fm('cabinet'), 7.38, 0.505, 4.69);
+      add(rgeo(0.52, 0.04, 1.58, 0.015), fm('wood'), 7.32, 1.03, 4.66);
+      add(new THREE.CylinderGeometry(0.012, 0.012, 1.3, 8), st, 7.17, 0.2, 4.69).rotation.x = Math.PI / 2;
+      [4.28, 4.98].forEach(function (z) {
+        const x = 6.92;
+        add(new THREE.CylinderGeometry(0.17, 0.15, 0.07, 28), fm('chair'), x, 0.755, z);
+        add(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 10), st, x, 0.37, z);
+        add(new THREE.CylinderGeometry(0.19, 0.2, 0.02, 28), st, x, 0.01, z);
+        add(new THREE.TorusGeometry(0.14, 0.01, 8, 28), st, x, 0.3, z).rotation.x = Math.PI / 2;
+        pendant({ x: 7.32, z: z + 0.03, y: 1.95, r: 0.09 });
+      });
+      colliders.push([7.2, 3.95, 7.56, 5.43]);
+    }
+    const PROP = { bar: barCounter, pic: picture, mirror: mirror, plant: plant, flowers: flowers, tlamp: tlamp, pendant: pendant, books: books, fruit: fruit, kitchen: kitchen,
                    cab: cab, plate: plate, spots: spots, sconce: sconce, rack: rack, pouf: pouf, bathroom: bathroom, closet: closetFill };
-    (P.props || []).forEach(function (p) { if (!(p.not && p.not.indexOf(th.id) >= 0)) PROP[p.t](p); });
+    (P.props || []).forEach(function (p) { if (!(p.not && p.not.indexOf(th.id) >= 0) && !(p.bar && !bar) && !(p.nobar && bar)) PROP[p.t](p); });
 
     applyMode();
     el('style').innerHTML = 'Стиль: <b>' + th.name + '</b><span class="note"><br>' + th.note + '<br>' + P.label + '</span>';
     el('bPlan').textContent = 'План: ' + P.title + ' (P)';
     el('bNight').textContent = night ? 'День (N)' : 'Вечер (N)';
+    el('bBar').className = bar ? 'on' : '';
     Array.prototype.forEach.call(el('styleBtns').children, function (b, i) { b.className = i === themeIdx ? 'on' : ''; });
   }
 
@@ -811,6 +828,7 @@
   }
   function toggleFurn() { showFurn = !showFurn; applyMode(); }
   function toggleNight() { night = !night; build(); }
+  function toggleBar() { bar = !bar; build(); resolve(); }
   function setTheme(i) {
     if (!THEMES[i]) return;
     themeIdx = i; try { localStorage.setItem('aptStyle3', i); } catch (e) {}
@@ -829,6 +847,7 @@
     if (e.code === 'KeyM') toggleFurn();
     if (e.code === 'KeyP') togglePlan();
     if (e.code === 'KeyN') toggleNight();
+    if (e.code === 'KeyB') toggleBar();
     if (/^Digit[1-9]$/.test(e.code)) setTheme(+e.code.slice(5) - 1);
     if (e.code.indexOf('Arrow') === 0) e.preventDefault();
   });
@@ -837,6 +856,7 @@
   el('bTop').onclick = function (e) { e.stopPropagation(); this.blur(); setTop(!topMode); };
   el('bPlan').onclick = function (e) { e.stopPropagation(); this.blur(); togglePlan(); };
   el('bNight').onclick = function (e) { e.stopPropagation(); this.blur(); toggleNight(); };
+  el('bBar').onclick = function (e) { e.stopPropagation(); this.blur(); toggleBar(); };
   el('bFurn').onclick = function (e) { e.stopPropagation(); this.blur(); toggleFurn(); };
   el('start').onclick = function () { el('start').style.display = 'none'; if (!isTouch) lock(); };
 
