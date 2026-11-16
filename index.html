@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Квартира 57,2 м²</title>
+<style>
+  /* Раскладка: 3D-сцена на весь экран, поверх неё панель слева и кнопки справа */
+  :root { --sky: #cfe3f2; --panel: rgba(20,24,30,.74); --panel-hover: rgba(50,60,75,.92); --ink: #ffffff;
+          --line: rgba(255,255,255,.2); --accent: #e5484d; --veil: rgba(15,18,24,.45); --dot: rgba(255,255,255,.7);
+          --font: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--sky); color: var(--ink); font-family: var(--font); }
+  canvas { display: block; position: fixed; left: 0; top: 0; touch-action: none; }
+  #hud { position: fixed; left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); background: var(--panel); color: var(--ink); padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.45; max-width: 360px; user-select: none; pointer-events: none; }
+  #room { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  #style { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+  #btns { position: fixed; right: calc(12px + env(safe-area-inset-right, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; }
+  button { background: var(--panel); color: var(--ink); border: 0; border-radius: 8px; padding: 9px 13px; font: 14px var(--font); cursor: pointer; }
+  button:hover { background: var(--panel-hover); }
+  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  button.on { background: var(--accent); }
+  #start { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--veil); color: var(--ink); text-align: center; cursor: pointer; }
+  #start div { background: var(--panel); padding: 26px 34px; border-radius: 14px; font-size: 16px; line-height: 1.6; margin: 0 16px; }
+  #start h1 { margin: 0 0 8px; font-size: 22px; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--dot); pointer-events: none; display: none; }
+  #stick { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%; border: 2px solid var(--dot); pointer-events: none; display: none; }
+  #knob { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: var(--dot); }
+  #hud, #btns, #start, #cross, #stick { z-index: 2; }
+  @media (max-width: 760px), (max-height: 520px) {
+    #hud { font-size: 12px; max-width: 46vw; padding: 7px 10px; }
+    #room { font-size: 14px; }
+    #style .note, #styleBtns button span { display: none; }
+    #btns { max-width: 46vw; gap: 5px; }
+    button { padding: 7px 9px; font-size: 12px; }
+    #start div { font-size: 14px; padding: 18px; }
+  }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="room"></div>
+  <div id="hint"></div>
+  <div id="style"></div>
+</div>
+<div id="btns">
+  <span id="styleBtns" style="display:contents"></span>
+  <button id="bPlan">План (P)</button>
+  <button id="bTop">Вид сверху (T)</button>
+  <button id="bFurn">Мебель (M)</button>
+</div>
+<div id="cross"></div>
+<div id="stick"><div id="knob"></div></div>
+<div id="start"><div>
+  <h1>Квартира 57,2 м²</h1>
+  Кликните, чтобы войти<br>
+  W A S D: ходьба, мышь: осмотреться, Shift: быстрее<br>
+  Цифры от 1 до 6: вариант ремонта, P: исходная или новая планировка, T: вид сверху, M: мебель<br>
+  На телефоне: левая половина экрана ходьба, правая осмотр
+</div></div>
+
+<script src="lib/three.min.js"></script>
+<script src="plan.js"></script>
+<script src="themes.js"></script>
+<script>
+(function () {
+  const qs = new URLSearchParams(location.search);
+  const PLANS = [window.PLAN, window.PLAN_ORIGINAL], THEMES = window.THEMES;
+  let planIdx = PLANS[+qs.get('plan')] ? +qs.get('plan') : 0, P = PLANS[planIdx];
+  const H = P.height;
+  const el = function (id) { return document.getElementById(id); };
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+  const canvas = renderer.domElement;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xcfe3f2);
+  const camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.05, 100);
+  camera.rotation.order = 'YXZ';
+  const topCam = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100);
+  topCam.up.set(0, 0, -1);
+
+  // ---------- свет (цвета и сила задаются стилем) ----------
+  const hemi = new THREE.HemisphereLight(0xffffff, 0xb8a890, 0.5);
+  const amb = new THREE.AmbientLight(0xffffff, 0.15);
+  const sun = new THREE.DirectionalLight(0xfff1dc, 0.85);
+  sun.position.set(P.size.x / 2 - 3, 5.5, P.size.z + 8);
+  sun.target.position.set(P.size.x / 2, 0, P.size.z / 2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  const sc = sun.shadow.camera;
+  sc.left = -9; sc.right = 9; sc.top = 9; sc.bottom = -9; sc.near = 0.5; sc.far = 40;
+  sun.shadow.bias = -0.0006;
+  scene.add(hemi, amb, sun, sun.target);
+  const points = P.rooms.filter(function (r) { return r.id !== 'closet'; }).map(function (r) {
+    const l = new THREE.PointLight(0xfff4e2, 0.32, 8, 2);
+    l.position.set((r.r[0] + r.r[2]) / 2, H - 0.4, (r.r[1] + r.r[3]) / 2);
+    scene.add(l); return l;
+  });
+
+  // ---------- текстуры ----------
+  function canvasTex(size, draw) {
+    const c = document.createElement('canvas'); c.width = c.height = size;
+    draw(c.getContext('2d'), size);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = 8;
+    return t;
+  }
+  let seed = 7;
+  function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  function shade(rgb, k) { return 'rgb(' + Math.round(rgb[0] * k) + ',' + Math.round(rgb[1] * k) + ',' + Math.round(rgb[2] * k) + ')'; }
+  function woodTexture(f) {
+    seed = 7;
+    if (f.style === 'herring') {
+      // паркет ёлочкой: плашка 1:4, рисунок повторяется каждые 8 ширин плашки
+      return canvasTex(512, function (g, s) {
+        const w = s / 8, L = w * 4, kh = [], kv = [];
+        for (let i = 0; i < 8; i++) { kh.push(1 - f.vary + rnd() * 2 * f.vary); kv.push(0.94 - f.vary + rnd() * 2 * f.vary); }
+        g.lineWidth = 1.5; g.strokeStyle = 'rgba(40,25,12,.55)';
+        for (let n = -24; n <= 24; n++) for (let m = -5; m <= 5; m++) {
+          const ox = n * w + m * L, oy = n * w - m * L, k = (((n - 4 * m) % 8) + 8) % 8;
+          if (ox > s || oy > s + L || ox + L + w < 0 || oy + w < -L) continue;
+          g.fillStyle = shade(f.rgb, kh[k]); g.fillRect(ox, oy, L, w); g.strokeRect(ox, oy, L, w);
+          g.fillStyle = shade(f.rgb, kv[k]); g.fillRect(ox + L, oy + w - L, w, L); g.strokeRect(ox + L, oy + w - L, w, L);
+        }
+      });
+    }
+    return canvasTex(512, function (g, s) {
+      const rows = 8, rh = s / rows;
+      for (let i = 0; i < rows; i++) {
+        let x = -rnd() * s * 0.6;
+        while (x < s) {
+          const w = s * (0.45 + rnd() * 0.3);
+          g.fillStyle = shade(f.rgb, 1 - f.vary + rnd() * 2 * f.vary); g.fillRect(x, i * rh, w, rh);
+          g.fillStyle = 'rgba(60,40,20,.3)'; g.fillRect(x, i * rh, 1.5, rh);
+          x += w;
+        }
+        g.fillStyle = 'rgba(60,40,20,.35)'; g.fillRect(0, i * rh, s, 1.5);
+      }
+    });
+  }
+  function tileTexture(t) {
+    return canvasTex(256, function (g, s) {
+      g.fillStyle = t.color; g.fillRect(0, 0, s, s);
+      if (t.pattern === 'octagon') {          // белая плитка с чёрными вставками по углам
+        g.strokeStyle = t.line; g.lineWidth = 2; g.strokeRect(0, 0, s, s);
+        g.fillStyle = t.dot; const d = s * 0.13;
+        [[0, 0], [s, 0], [0, s], [s, s]].forEach(function (p) {
+          g.beginPath(); g.moveTo(p[0] - d, p[1]); g.lineTo(p[0], p[1] - d); g.lineTo(p[0] + d, p[1]); g.lineTo(p[0], p[1] + d); g.closePath(); g.fill();
+        });
+      } else if (t.pattern === 'floral') {    // диагональная сетка с четырёхлистником на пересечениях
+        g.strokeStyle = t.line; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(0, 0); g.lineTo(s, s); g.moveTo(s, 0); g.lineTo(0, s); g.stroke();
+        g.fillStyle = t.dot;
+        [[0, 0], [s, 0], [0, s], [s, s], [s / 2, s / 2]].forEach(function (p) {
+          for (let k = 0; k < 4; k++) {
+            g.save(); g.translate(p[0], p[1]); g.rotate(Math.PI / 4 + k * Math.PI / 2);
+            g.beginPath(); g.ellipse(s * 0.085, 0, s * 0.06, s * 0.028, 0, 0, Math.PI * 2); g.fill(); g.restore();
+          }
+        });
+      } else { g.strokeStyle = t.line; g.lineWidth = 3; g.strokeRect(0, 0, s, s); }
+    });
+  }
+  const FALLBACK = { oven: 'fridge', accent: 'sofaBack', led: 0xfff1d0, lamp: 0xf3e6cf, curtain: 0xe9e4da };
+
+  // ---------- построение сцены под выбранный стиль ----------
+  let root = null, colliders = [], ceiling, caps, furn, labels, showFurn = !qs.get('nofurn'), topMode = false;
+  let themeIdx = 0, baseTex = [];
+  try { themeIdx = +(localStorage.getItem('aptStyle2') || 0) || 0; } catch (e) {}
+  if (qs.get('style') !== null) themeIdx = +qs.get('style') || 0;
+  if (!THEMES[themeIdx]) themeIdx = 0;
+
+  function build() {
+    const th = THEMES[themeIdx];
+    if (root) {
+      scene.remove(root);
+      root.traverse(function (o) {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
+      });
+    }
+    root = new THREE.Group(); scene.add(root);
+    colliders = [];
+    caps = new THREE.Group(); furn = new THREE.Group(); labels = new THREE.Group();
+    root.add(caps, furn, labels);
+
+    scene.background.set(th.light.bg);
+    hemi.intensity = th.light.hemi; amb.intensity = th.light.amb;
+    sun.color.set(th.light.sun); sun.intensity = th.light.sunI;
+    const lit = P.rooms.filter(function (r) { return r.id !== 'closet'; });
+    points.forEach(function (l, i) {
+      const r = lit[i % lit.length].r;
+      l.position.set((r[0] + r[2]) / 2, H - 0.4, (r[1] + r[3]) / 2);
+      l.color.set(th.light.point); l.intensity = th.light.pointI;
+    });
+
+    baseTex.forEach(function (t) { t.dispose(); }); baseTex = [];
+    const texCache = new Map();
+    function tex(spec) {
+      if (!texCache.has(spec)) { const t = spec === 'wood' ? woodTexture(th.floor) : tileTexture(spec); texCache.set(spec, t); baseTex.push(t); }
+      return texCache.get(spec);
+    }
+    // spec: 'wood' или описание плитки { pattern, color, line, dot, size }
+    function floorMat(spec, w, d) {
+      const t = tex(spec).clone(); t.needsUpdate = true;
+      if (spec !== 'wood') t.repeat.set(w / spec.size, d / spec.size);
+      else if (th.floor.style === 'herring') { t.repeat.set(w / 0.72, d / 0.72); t.rotation = Math.PI / 4; }
+      else t.repeat.set(w / 2, d / 2);
+      return new THREE.MeshStandardMaterial({ map: t, roughness: spec === 'wood' ? 0.65 : 0.4 });
+    }
+    function floorPlane(r, spec, y) {
+      const w = r[2] - r[0], d = r[3] - r[1];
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), floorMat(spec, w, d));
+      m.rotation.x = -Math.PI / 2; m.position.set((r[0] + r[2]) / 2, y, (r[1] + r[3]) / 2);
+      m.receiveShadow = true; root.add(m);
+    }
+    const mats = {};
+    function fm(c) {
+      const key = c;
+      if (mats[key]) return mats[key];
+      if (typeof c === 'string') {
+        let v = th.pal[c];
+        if (v === undefined) { const f = FALLBACK[c]; v = typeof f === 'string' ? th.pal[f] : f; }
+        if (c === 'led' || c === 'lamp') return (mats[key] = new THREE.MeshBasicMaterial({ color: v }));
+        c = v === undefined ? 0xff00ff : v;
+      }
+      return (mats[key] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }));
+    }
+    const wallMat = new THREE.MeshStandardMaterial({ color: th.wall, roughness: 0.95 });
+    const capMat = new THREE.MeshBasicMaterial({ color: 0x2b2f36 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fd0e8, transparent: true, opacity: 0.18, roughness: 0.05, depthWrite: false });
+    const frameMat = new THREE.MeshStandardMaterial({ color: th.frame, roughness: 0.6 });
+    const doorMat = new THREE.MeshStandardMaterial({ color: th.door, roughness: 0.6 });
+
+    function box(x1, y1, z1, x2, y2, z2, mat, parent, noShadow) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1, y2 - y1, z2 - z1), mat);
+      m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+      if (!noShadow) { m.castShadow = true; m.receiveShadow = true; }
+      (parent || root).add(m);
+      return m;
+    }
+
+    // пол, потолок, подписи
+    const base = new THREE.Mesh(new THREE.PlaneGeometry(P.size.x, P.size.z), new THREE.MeshStandardMaterial({ color: th.base, roughness: 0.9 }));
+    base.rotation.x = -Math.PI / 2; base.position.set(P.size.x / 2, 0, P.size.z / 2); base.receiveShadow = true; root.add(base);
+    P.rooms.forEach(function (r, ri) {
+      const w = r.r[2] - r.r[0];
+      floorPlane(r.r, r.floor === 'tile' ? th.tile : 'wood', 0.003 + ri * 0.0004);
+      const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+      const g = c.getContext('2d');
+      g.textAlign = 'center'; g.lineWidth = 10; g.strokeStyle = 'rgba(255,255,255,.85)'; g.fillStyle = '#14181e';
+      g.font = '600 76px Segoe UI, Arial'; g.strokeText(r.name, 256, 110); g.fillText(r.name, 256, 110);
+      const a = String(r.area).replace('.', ',') + ' м²';
+      g.font = '58px Segoe UI, Arial'; g.strokeText(a, 256, 190); g.fillText(a, 256, 190);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+      const k = Math.min(1.9, w * 0.6);
+      sp.scale.set(k, k / 2, 1);
+      sp.position.set((r.r[0] + r.r[2]) / 2, H + 0.3, (r.r[1] + r.r[3]) / 2 + (r.labelDz || 0));
+      sp.renderOrder = 10; labels.add(sp);
+    });
+    // зоны с другой отделкой пола (плитка у входа, на кухне)
+    (th.zones || []).forEach(function (z, zi) { floorPlane(z.r, z.tile || 'wood', 0.007 + zi * 0.0004); });
+    ceiling = box(0, H, 0, P.size.x, H + 0.2, P.size.z, new THREE.MeshStandardMaterial({ color: th.ceiling, roughness: 1 }));
+
+    // стены с проёмами
+    P.walls.forEach(function (w) {
+      const r = w.r, alongX = (r[2] - r[0]) >= (r[3] - r[1]);
+      const s0 = alongX ? r[0] : r[1], s1 = alongX ? r[2] : r[3];
+      function piece(a, b, y0, y1, mat, collide, half, parent, noShadow) {
+        if (b - a < 0.005 || y1 - y0 < 0.005) return;
+        let x1, x2, z1, z2;
+        if (alongX) { x1 = a; x2 = b; z1 = r[1]; z2 = r[3]; } else { z1 = a; z2 = b; x1 = r[0]; x2 = r[2]; }
+        if (half !== undefined) {
+          if (alongX) { const c = (r[1] + r[3]) / 2; z1 = c - half; z2 = c + half; }
+          else { const c = (r[0] + r[2]) / 2; x1 = c - half; x2 = c + half; }
+        }
+        box(x1, y0, z1, x2, y1, z2, mat, parent, noShadow);
+        if (collide) colliders.push([x1, z1, x2, z2]);
+      }
+      let cur = s0;
+      (w.op || []).slice().sort(function (p, q) { return p.a - q.a; }).forEach(function (o) {
+        piece(cur, o.a, 0, H, wallMat, true);
+        piece(cur, o.a, H, H + 0.02, capMat, false, undefined, caps, true);
+        piece(o.a, o.b, 0, o.sill, wallMat, o.sill > 0.3);
+        piece(o.a, o.b, o.head, H, wallMat, false);
+        if (o.type === 'window' || o.type === 'glassdoor') {
+          const f = 0.06;
+          piece(o.a, o.b, o.sill, o.head, glassMat, false, 0.01, root, true);
+          piece(o.a, o.b, o.sill, o.sill + f, frameMat, false, 0.04);
+          piece(o.a, o.b, o.head - f, o.head, frameMat, false, 0.04);
+          piece(o.a, o.a + f, o.sill, o.head, frameMat, false, 0.04);
+          piece(o.b - f, o.b, o.sill, o.head, frameMat, false, 0.04);
+          if (o.b - o.a > 1.2) { const c = (o.a + o.b) / 2; piece(c - f / 2, c + f / 2, o.sill, o.head, frameMat, false, 0.04); }
+          piece(o.a, o.b, H, H + 0.02, new THREE.MeshBasicMaterial({ color: 0x6fb6dc }), false, 0.05, caps, true);
+        }
+        if (o.type === 'open') floorPlane(alongX ? [o.a, r[1], o.b, r[3]] : [r[0], o.a, r[2], o.b], 'wood', 0.0025);
+        if (o.type === 'entry') {
+          piece(o.a, o.b, 0, o.head, doorMat, true, 0.035);
+          piece(o.a, o.b, H, H + 0.02, new THREE.MeshBasicMaterial({ color: 0x8b5e3c }), false, 0.05, caps, true);
+        }
+        cur = o.b;
+      });
+      piece(cur, s1, 0, H, wallMat, true);
+      piece(cur, s1, H, H + 0.02, capMat, false, undefined, caps, true);
+    });
+
+    // перегородка между кухней и гостиной (стекло в раме или рейки)
+    if (th.partition && !P.noPartition) {
+      const p = th.partition, x = p.x;
+      const pm = new THREE.MeshStandardMaterial({ color: p.color, roughness: 0.5, metalness: p.kind === 'glass' ? 0.3 : 0 });
+      const glassPanel = function (gx, z1, z2) {
+        const f = 0.045;
+        box(gx - 0.005, 0, z1, gx + 0.005, H, z2, glassMat, root, true);
+        box(gx - f / 2, 0, z1, gx + f / 2, H, z1 + f, pm); box(gx - f / 2, 0, z2 - f, gx + f / 2, H, z2, pm);
+        box(gx - f / 2, 0, z1, gx + f / 2, f, z2, pm); box(gx - f / 2, H - f, z1, gx + f / 2, H, z2, pm);
+        const n = Math.max(1, Math.round((z2 - z1) / 0.55));
+        for (let i = 1; i < n; i++) { const z = z1 + (z2 - z1) * i / n; box(gx - 0.012, 0, z - 0.012, gx + 0.012, H, z + 0.012, pm); }
+        [0.45, 2.35].forEach(function (y) { box(gx - 0.012, y - 0.012, z1, gx + 0.012, y + 0.012, z2, pm); });
+      };
+      if (p.kind === 'slats') {
+        box(x - 0.04, 0, p.z1, x + 0.04, 0.04, p.z2, pm); box(x - 0.04, H - 0.04, p.z1, x + 0.04, H, p.z2, pm);
+        for (let z = p.z1 + 0.02; z + 0.04 <= p.z2; z += 0.12) box(x - 0.04, 0.04, z, x + 0.04, H - 0.04, z + 0.04, pm);
+      } else {
+        glassPanel(x, p.z1, p.z2);
+        if (p.slide) { glassPanel(x + 0.07, p.slide[0], p.slide[1]); box(x + 0.04, H - 0.06, p.track[0], x + 0.10, H, p.track[1], pm); }
+      }
+      colliders.push([x - 0.03, p.z1, x + 0.03, p.z2]);
+    }
+
+    // плинтусы и карнизы по контурам комнат
+    const edges = [];
+    P.shells.forEach(function (s) {
+      edges.push({ axis: 'x', c: s[1], a: s[0], b: s[2], dir: 1 }, { axis: 'x', c: s[3], a: s[0], b: s[2], dir: -1 },
+                 { axis: 'z', c: s[0], a: s[1], b: s[3], dir: 1 }, { axis: 'z', c: s[2], a: s[1], b: s[3], dir: -1 });
+    });
+    (P.extraEdges || []).forEach(function (e) { edges.push(e); });
+    function edgeBox(e, a, b, y0, y1, depth, mat) {
+      if (b - a < 0.01) return;
+      const c1 = Math.min(e.c, e.c + e.dir * depth), c2 = Math.max(e.c, e.c + e.dir * depth);
+      if (e.axis === 'x') box(a, y0, c1, b, y1, c2, mat); else box(c1, y0, a, c2, y1, b, mat);
+    }
+    const bbMat = fm(th.baseboard.color), coMat = th.cornice ? new THREE.MeshStandardMaterial({ color: th.cornice.color, roughness: 0.9 }) : null;
+    edges.forEach(function (e) {
+      const gaps = [];
+      P.walls.forEach(function (w) {
+        const r = w.r, alongX = (r[2] - r[0]) >= (r[3] - r[1]);
+        if (alongX !== (e.axis === 'x') || !w.op) return;
+        const lo = alongX ? r[1] : r[0], hi = alongX ? r[3] : r[2];
+        if (Math.abs(lo - e.c) > 0.02 && Math.abs(hi - e.c) > 0.02) return;
+        w.op.forEach(function (o) { if (o.sill < 0.05) gaps.push([o.a, o.b]); });
+      });
+      gaps.sort(function (p, q) { return p[0] - q[0]; });
+      let cur = e.a;
+      gaps.forEach(function (g) {
+        if (g[1] < e.a || g[0] > e.b) return;
+        edgeBox(e, cur, Math.min(g[0], e.b), 0, th.baseboard.h, 0.015, bbMat); cur = Math.max(cur, g[1]);
+      });
+      edgeBox(e, cur, e.b, 0, th.baseboard.h, 0.015, bbMat);
+      if (coMat) edgeBox(e, e.a, e.b, H - th.cornice.h, H, th.cornice.d, coMat);
+    });
+
+    // декор стиля и мебель
+    (th.decor || []).filter(P.decorFilter || function () { return true; }).forEach(function (b) { box(b[0], b[4], b[1], b[2], b[5], b[3], fm(b[6]), furn); });
+    P.furniture.box.forEach(function (b) { box(b[0], b[4], b[1], b[2], b[5], b[3], fm(b[6]), furn); });
+    P.furniture.cyl.forEach(function (c) {
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(c[2], c[2], c[4] - c[3], 32), fm(c[5]));
+      m.position.set(c[0], (c[3] + c[4]) / 2, c[1]); m.castShadow = m.receiveShadow = true; furn.add(m);
+    });
+
+    applyMode();
+    el('style').innerHTML = 'Стиль: <b>' + th.name + '</b><span class="note"><br>' + th.note + '<br>' + P.label + '</span>';
+    el('bPlan').textContent = 'План: ' + P.title + ' (P)';
+    Array.prototype.forEach.call(el('styleBtns').children, function (b, i) { b.className = i === themeIdx ? 'on' : ''; });
+  }
+
+  // маркер игрока для вида сверху
+  const marker = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.6, 3), new THREE.MeshBasicMaterial({ color: 0xe5484d, depthTest: false }));
+  marker.rotation.x = -Math.PI / 2; marker.renderOrder = 11;
+  const markerPivot = new THREE.Group(); markerPivot.add(marker); markerPivot.visible = false; scene.add(markerPivot);
+
+  // ---------- управление ----------
+  const pos = { x: P.start.x, z: P.start.z };
+  let yaw = P.start.yaw * Math.PI / 180, pitch = 0;
+  if (qs.get('pos')) { const a = qs.get('pos').split(',').map(Number); pos.x = a[0]; pos.z = a[1]; yaw = (a[2] || 0) * Math.PI / 180; pitch = (a[3] || 0) * Math.PI / 180; }
+  const keys = {};
+  const R = 0.22;
+
+  function lock() {
+    try { const p = canvas.requestPointerLock && canvas.requestPointerLock(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  }
+  const isTouch = 'ontouchstart' in window;
+
+  function resolve() {
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < colliders.length; i++) {
+        const c = colliders[i];
+        const nx = Math.max(c[0], Math.min(pos.x, c[2])), nz = Math.max(c[1], Math.min(pos.z, c[3]));
+        const dx = pos.x - nx, dz = pos.z - nz, d2 = dx * dx + dz * dz;
+        if (d2 >= R * R) continue;
+        if (d2 > 1e-9) { const d = Math.sqrt(d2); pos.x = nx + dx / d * R; pos.z = nz + dz / d * R; }
+        else {
+          const l = pos.x - c[0], r = c[2] - pos.x, t = pos.z - c[1], b = c[3] - pos.z, m = Math.min(l, r, t, b);
+          if (m === l) pos.x = c[0] - R; else if (m === r) pos.x = c[2] + R; else if (m === t) pos.z = c[1] - R; else pos.z = c[3] + R;
+        }
+      }
+    }
+    pos.x = Math.max(0.3, Math.min(P.size.x - 0.3, pos.x)); pos.z = Math.max(0.3, Math.min(P.size.z - 0.3, pos.z));
+  }
+
+  function applyMode() {
+    ceiling.visible = !topMode; caps.visible = topMode; labels.visible = topMode; markerPivot.visible = topMode;
+    furn.visible = showFurn;
+  }
+  let lastRoom;
+  function setTop(v) {
+    topMode = v; applyMode(); lastRoom = null;
+    el('bTop').textContent = v ? 'Прогулка (T)' : 'Вид сверху (T)';
+    el('cross').style.display = (!v && document.pointerLockElement === canvas) ? 'block' : 'none';
+    if (v && document.pointerLockElement) document.exitPointerLock();
+    fitTop();
+  }
+  function fitTop() {
+    const a = innerWidth / innerHeight, k = 2 * Math.tan(25 * Math.PI / 180);
+    const d = Math.max((P.size.z + 1.2) / k, (P.size.x + 1.2) / (k * a));
+    topCam.aspect = a; topCam.updateProjectionMatrix();
+    topCam.position.set(P.size.x / 2, d + H, P.size.z / 2); topCam.lookAt(P.size.x / 2, 0, P.size.z / 2);
+  }
+  function togglePlan() {
+    planIdx = (planIdx + 1) % PLANS.length; P = PLANS[planIdx];
+    build(); resolve(); lastRoom = null;
+  }
+  function toggleFurn() { showFurn = !showFurn; applyMode(); }
+  function setTheme(i) {
+    if (!THEMES[i]) return;
+    themeIdx = i; try { localStorage.setItem('aptStyle2', i); } catch (e) {}
+    build();
+  }
+  THEMES.forEach(function (t, i) {
+    const b = document.createElement('button');
+    b.innerHTML = (i + 1) + '<span> ' + t.name + '</span>'; b.title = t.name;
+    b.onclick = function (e) { e.stopPropagation(); b.blur(); setTheme(i); };
+    el('styleBtns').appendChild(b);
+  });
+
+  addEventListener('keydown', function (e) {
+    keys[e.code] = true;
+    if (e.code === 'KeyT') setTop(!topMode);
+    if (e.code === 'KeyM') toggleFurn();
+    if (e.code === 'KeyP') togglePlan();
+    if (/^Digit[1-9]$/.test(e.code)) setTheme(+e.code.slice(5) - 1);
+    if (e.code.indexOf('Arrow') === 0) e.preventDefault();
+  });
+  addEventListener('keyup', function (e) { keys[e.code] = false; });
+  addEventListener('blur', function () { for (const k in keys) keys[k] = false; });
+  el('bTop').onclick = function (e) { e.stopPropagation(); this.blur(); setTop(!topMode); };
+  el('bPlan').onclick = function (e) { e.stopPropagation(); this.blur(); togglePlan(); };
+  el('bFurn').onclick = function (e) { e.stopPropagation(); this.blur(); toggleFurn(); };
+  el('start').onclick = function () { el('start').style.display = 'none'; if (!isTouch) lock(); };
+
+  let drag = false;
+  const ray = new THREE.Raycaster(), floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  canvas.addEventListener('mousedown', function (e) {
+    if (topMode) {
+      ray.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), topCam);
+      const p = new THREE.Vector3();
+      if (ray.ray.intersectPlane(floorPlane, p) && p.x > 0 && p.x < P.size.x && p.z > 0 && p.z < P.size.z) {
+        pos.x = p.x; pos.z = p.z; resolve(); setTop(false); if (!isTouch) lock();
+      }
+      return;
+    }
+    if (document.pointerLockElement !== canvas) { lock(); drag = true; }
+  });
+  addEventListener('mouseup', function () { drag = false; });
+  addEventListener('mousemove', function (e) {
+    if (topMode) return;
+    if (document.pointerLockElement === canvas || drag) {
+      yaw -= e.movementX * 0.0022; pitch -= e.movementY * 0.0022;
+      pitch = Math.max(-1.45, Math.min(1.45, pitch));
+    }
+  });
+  // телефон и планшет: левая половина экрана джойстик ходьбы, правая осмотр
+  const tch = { moveId: null, lookId: null, sx: 0, sy: 0, lx: 0, ly: 0, mx: 0, my: 0 };
+  function stickAt(x, y, kx, ky) {
+    el('stick').style.display = 'block'; el('stick').style.left = x + 'px'; el('stick').style.top = y + 'px';
+    el('knob').style.transform = 'translate(' + kx * 33 + 'px,' + ky * 33 + 'px)';
+  }
+  canvas.addEventListener('touchstart', function (e) {
+    if (topMode) return;
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.clientX < innerWidth / 2 && tch.moveId === null) { tch.moveId = t.identifier; tch.sx = t.clientX; tch.sy = t.clientY; tch.mx = tch.my = 0; stickAt(t.clientX, t.clientY, 0, 0); }
+      else if (tch.lookId === null) { tch.lookId = t.identifier; tch.lx = t.clientX; tch.ly = t.clientY; }
+    }
+  }, { passive: false });
+  canvas.addEventListener('touchmove', function (e) {
+    if (topMode) return;
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === tch.moveId) {
+        let dx = (t.clientX - tch.sx) / 50, dy = (t.clientY - tch.sy) / 50; const m = Math.hypot(dx, dy);
+        if (m > 1) { dx /= m; dy /= m; }
+        tch.mx = dx; tch.my = -dy; stickAt(tch.sx, tch.sy, dx, dy);
+      } else if (t.identifier === tch.lookId) {
+        yaw -= (t.clientX - tch.lx) * 0.005; pitch -= (t.clientY - tch.ly) * 0.005;
+        pitch = Math.max(-1.45, Math.min(1.45, pitch)); tch.lx = t.clientX; tch.ly = t.clientY;
+      }
+    }
+  }, { passive: false });
+  function touchEnd(e) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const id = e.changedTouches[i].identifier;
+      if (id === tch.moveId) { tch.moveId = null; tch.mx = tch.my = 0; el('stick').style.display = 'none'; }
+      if (id === tch.lookId) tch.lookId = null;
+    }
+  }
+  canvas.addEventListener('touchend', touchEnd); canvas.addEventListener('touchcancel', touchEnd);
+
+  document.addEventListener('pointerlockchange', function () {
+    el('cross').style.display = (!topMode && document.pointerLockElement === canvas) ? 'block' : 'none';
+  });
+  addEventListener('resize', function () {
+    renderer.setSize(innerWidth, innerHeight);
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); fitTop();
+  });
+
+  function roomAt() {
+    for (let i = P.rooms.length - 1; i >= 0; i--) { const r = P.rooms[i].r; if (pos.x >= r[0] && pos.x <= r[2] && pos.z >= r[1] && pos.z <= r[3]) return P.rooms[i]; }
+    return null;
+  }
+  function fmt(n) { return n.toFixed(2).replace('.', ','); }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!topMode) {
+      if (keys.ArrowLeft) yaw += 1.8 * dt; if (keys.ArrowRight) yaw -= 1.8 * dt;
+      let f = 0, s = 0;
+      if (keys.KeyW || keys.ArrowUp) f += 1; if (keys.KeyS || keys.ArrowDown) f -= 1;
+      if (keys.KeyD) s += 1; if (keys.KeyA) s -= 1;
+      f += tch.my; s += tch.mx;
+      const mag = Math.hypot(f, s);
+      if (mag > 0.08) {
+        const v = (keys.ShiftLeft || keys.ShiftRight ? 3.2 : 1.6) * Math.min(1, mag) * dt / mag;
+        const sn = Math.sin(yaw), cs = Math.cos(yaw);
+        pos.x += (-sn * f + cs * s) * v; pos.z += (-cs * f - sn * s) * v;
+        resolve();
+      }
+    }
+    camera.position.set(pos.x, P.eye, pos.z); camera.rotation.set(pitch, yaw, 0);
+    markerPivot.position.set(pos.x, H + 0.5, pos.z); markerPivot.rotation.y = yaw;
+    const r = roomAt(), key = (r ? r.id : '') + topMode;
+    if (key !== lastRoom) {
+      lastRoom = key;
+      el('room').textContent = topMode ? 'План квартиры, 57,2 м²' : (r ? r.name + ', ' + String(r.area).replace('.', ',') + ' м²' : 'Проход');
+      el('hint').innerHTML = topMode
+        ? 'Кликните по комнате, чтобы встать в неё.<br>Потолки ' + fmt(H) + ' м.'
+        : (r ? 'Размер: ' + fmt(r.r[2] - r.r[0]) + ' × ' + fmt(r.r[3] - r.r[1]) + ' м, потолок ' + fmt(H) + ' м<br>' : '') + (isTouch ? 'Слева ходьба, справа осмотр' : 'W A S D и мышь, Shift быстрее, цифры: вариант ремонта');
+    }
+    renderer.render(scene, topMode ? topCam : camera);
+    requestAnimationFrame(frame);
+  }
+  build();
+  fitTop();
+  if (qs.get('top')) setTop(true);
+  if (qs.get('top') || qs.get('pos')) el('start').style.display = 'none';
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
