@@ -47,7 +47,7 @@ window.PLAN = {
       { a: 8.03, b: 10.16, sill: 0.8, head: 2.6, type: 'window' }
     ] },
     // спальня / прихожая и гостиная (двустворчатая дверь в спальню)
-    { r: [3.74, 0.26, 3.85, 5.05], op: [{ a: 0.53, b: 1.85, sill: 0, head: 2.1, type: 'open' }] },
+    { r: [3.74, 0.26, 3.85, 5.05], op: [{ a: 0.53, b: 1.85, sill: 0, head: 2.1, type: 'open', door: { double: true, side: -1 } }] },
     // спальня / лоджия (балконный блок)
     { r: [0.25, 5.05, 3.36, 5.32], op: [
       { a: 1.11, b: 1.87, sill: 0, head: 2.3, type: 'glassdoor' },
@@ -64,7 +64,7 @@ window.PLAN = {
     { r: [1.85, 0.26, 1.93, 1.94], op: [{ a: 0.75, b: 1.45, sill: 0, head: 2.1, type: 'open' }] },
     { r: [0.25, 1.86, 1.85, 1.94] },
     // прихожая / ванная
-    { r: [8.48, 0.26, 8.59, 2.15], op: [{ a: 0.62, b: 1.47, sill: 0, head: 2.1, type: 'open' }] },
+    { r: [8.48, 0.26, 8.59, 2.15], op: [{ a: 0.62, b: 1.47, sill: 0, head: 2.1, type: 'open', door: { hinge: 'b', side: -1, angle: 110 } }] },
     // сантехнический короб между ванной и кухней
     { r: [8.59, 2.15, 10.75, 2.74] },
     { r: [8.48, 2.15, 8.59, 2.74] }
@@ -199,7 +199,7 @@ window.PLAN_ORIGINAL = {
       { a: 4.45, b: 6.57, sill: 0.8, head: 2.6, type: 'window' },
       { a: 8.03, b: 10.16, sill: 0.8, head: 2.6, type: 'window' }
     ] },
-    { r: [3.74, 0.26, 3.85, 5.05], op: [{ a: 0.53, b: 1.85, sill: 0, head: 2.1, type: 'open' }] },
+    { r: [3.74, 0.26, 3.85, 5.05], op: [{ a: 0.53, b: 1.85, sill: 0, head: 2.1, type: 'open', door: { double: true, side: -1 } }] },
     { r: [0.25, 5.05, 3.36, 5.32], op: [
       { a: 1.11, b: 1.87, sill: 0, head: 2.3, type: 'glassdoor' },
       { a: 1.87, b: 3.19, sill: 0.8, head: 2.3, type: 'window' }
@@ -207,11 +207,11 @@ window.PLAN_ORIGINAL = {
     { r: [0.25, 5.32, 0.36, 6.30] },
     { r: [3.36, 5.05, 3.85, 6.30] },
     { r: [3.85, 2.05, 8.48, 2.15], op: [
-      { a: 5.98, b: 6.88, sill: 0, head: 2.1, type: 'open' },
-      { a: 7.46, b: 8.46, sill: 0, head: 2.1, type: 'open' }
+      { a: 5.98, b: 6.88, sill: 0, head: 2.1, type: 'open', door: { hinge: 'a', side: 1 } },
+      { a: 7.46, b: 8.46, sill: 0, head: 2.1, type: 'open', door: { hinge: 'a', side: 1 } }
     ] },
     { r: [7.32, 2.15, 7.44, 6.30] },
-    { r: [8.48, 0.26, 8.59, 2.15], op: [{ a: 0.62, b: 1.47, sill: 0, head: 2.1, type: 'open' }] },
+    { r: [8.48, 0.26, 8.59, 2.15], op: [{ a: 0.62, b: 1.47, sill: 0, head: 2.1, type: 'open', door: { hinge: 'b', side: -1, angle: 110 } }] },
     { r: [8.59, 2.15, 10.75, 2.74] },
     { r: [8.48, 2.15, 8.59, 2.74] }
   ],
@@ -292,7 +292,6 @@ window.PLAN_ORIGINAL = {
     { t: 'kitchen' },
     { t: 'mirror', w: HALLW, at: 6.97, y: 1.62, r: 0.32 },
     { t: 'pic', w: HALLW, at: 7.90, y: 1.75, sw: 0.42, sh: 0.58, art: 1 },
-    { t: 'pic', w: HALLW, at: 6.03, y: 1.75, sw: 0.42, sh: 0.58, art: 3, not: ['scandi'] },
     { t: 'flowers', x: 6.82, z: 0.41, y: 0.81, s: 1 },
     { t: 'books', x: 7.14, z: 0.42, y: 0.81, rot: 0.3 },
     { t: 'pic', w: DINW, at: 8.95, y: 1.78, sw: 0.36, sh: 0.5, art: 0 },
@@ -302,7 +301,7 @@ window.PLAN_ORIGINAL = {
     { t: 'plant', kind: 'pot', x: 8.55, z: 6.343, y: 0.80, s: 0.7 },
     { t: 'plant', kind: 'pot', x: 9.60, z: 6.343, y: 0.80, s: 0.7 },
     { t: 'mirror', w: BATHW, at: 9.67, y: 1.50, sw: 0.55, sh: 0.75 },
-    { t: 'plant', kind: 'pot', x: 9.50, z: 1.93, y: 0.85, s: 0.7 }
+    { t: 'plant', kind: 'pot', x: 9.25, z: 0.54, y: 0.85, s: 0.8 }
   ];
   // консоль в прихожей под зеркалом
   const consoleTable = [
@@ -348,5 +347,56 @@ window.PLAN_ORIGINAL = {
     { t: 'tlamp', x: 4.07, z: 5.56, y: 0.50 },
     { t: 'pendant', x: 5.60, z: 4.30, y: 2.42, r: 0.17 },
     { t: 'flowers', x: 8.25, z: 4.80, y: 0.76, s: 1.05 }
+  ]);
+})();
+
+// Этап 2: прихожая (шкаф, банкетка, вешалка), ванная, спальня и гардероб, свет и электрика.
+// E(стена, место, высота, тип): 'sw' выключатель, 'so' розетка, 'so2' двойная розетка.
+(function () {
+  const W = function (axis, c, dir) { return { axis: axis, c: c, dir: dir }; };
+  const E = function (w, at, y, k) { return { t: 'plate', w: w, at: at, y: y, k: k }; };
+  const hallT = W('x', 0.26, 1), bathB = W('x', 2.15, -1), dinW = W('x', 2.74, 1), cook = W('z', 10.75, -1);
+  const common = [
+    // прихожая
+    { t: 'cab', x1: 4.50, z1: 1.60, x2: 5.90, z2: 2.05, y0: 0, y1: 2.6, role: 'shelf', face: 'z-', n: 3 },
+    { t: 'rack', w: hallT, at: 6.03, y: 1.75, sw: 0.80 },
+    E(hallT, 5.37, 0.9, 'sw'), E(hallT, 7.45, 0.3, 'so'),
+    // ванная
+    { t: 'bathroom' },
+    E(W('z', 8.48, -1), 1.62, 0.9, 'sw'), E(bathB, 9.28, 1.1, 'so'), E(W('x', 0.26, 1), 9.63, 0.55, 'so'),
+    // кухня
+    E(cook, 3.60, 1.15, 'so2'), E(cook, 4.75, 1.15, 'so2'), E(dinW, 8.70, 0.3, 'so'),
+    // потолочный свет: прихожая, ванная, кухня, две комнаты
+    { t: 'spots', pts: [[4.76, 1.15], [6.20, 1.15], [7.60, 1.15], [9.20, 1.20], [10.20, 1.20],
+                        [9.60, 3.20], [9.60, 4.20], [9.60, 5.20], [8.00, 3.00],
+                        [4.40, 2.90], [6.60, 2.90], [4.40, 5.60], [6.60, 5.60],
+                        [1.20, 2.30], [1.20, 4.70], [3.20, 2.30], [3.20, 4.70]] }
+  ];
+  const hallBoxes = [
+    [5.62, 0.28, 6.43, 0.60, 0, 0.40, 'woodDark'], [5.60, 0.27, 6.45, 0.62, 0.40, 0.47, 'accent'],
+    [4.32, 0.32, 5.20, 0.88, 0.004, 0.014, 'rug']
+  ];
+  [window.PLAN, window.PLAN_ORIGINAL].forEach(function (p) { p.furniture.box = p.furniture.box.concat(hallBoxes); p.props = p.props.concat(common); });
+
+  const midL = W('z', 3.85, 1), bedR = W('z', 3.74, -1), bedL = W('z', 0.25, 1), bedT = W('x', 0.26, 1), tvW = W('x', 2.15, 1);
+  window.PLAN.furniture.box = window.PLAN.furniture.box.concat([
+    // спальня: туалетный столик (ножки), ковёр, шторы у балконного блока
+    [2.07, 0.29, 2.11, 0.33, 0, 0.60, 'woodDark'], [2.89, 0.29, 2.93, 0.33, 0, 0.60, 'woodDark'],
+    [2.07, 0.64, 2.11, 0.68, 0, 0.60, 'woodDark'], [2.89, 0.64, 2.93, 0.68, 0, 0.60, 'woodDark'],
+    [0.95, 2.20, 3.05, 4.70, 0.004, 0.014, 'rug'],
+    [0.28, 4.93, 1.05, 4.99, 0, 2.86, 'curtain'], [3.22, 4.93, 3.72, 4.99, 0, 2.86, 'curtain']
+  ]);
+  window.PLAN.props = window.PLAN.props.concat([
+    // спальня
+    { t: 'cab', x1: 2.05, z1: 0.27, x2: 2.95, z2: 0.70, y0: 0.60, y1: 0.76, role: 'woodDark', face: 'z+', n: 2, hbar: true },
+    { t: 'mirror', w: bedT, at: 2.50, y: 1.40, r: 0.30 },
+    { t: 'pouf', x: 2.50, z: 1.00, r: 0.19, h: 0.42 },
+    { t: 'cab', x1: 3.39, z1: 2.85, x2: 3.74, z2: 4.05, y0: 0, y1: 0.55, role: 'woodDark', face: 'x-', n: 3, hbar: true },
+    { t: 'closet' },
+    E(bedR, 2.02, 0.9, 'sw'), E(bedL, 2.22, 0.65, 'so'), E(bedL, 4.68, 0.65, 'so'), E(bedR, 4.25, 0.3, 'so2'), E(bedT, 3.10, 0.3, 'so'),
+    E(W('z', 1.93, 1), 1.62, 0.9, 'sw'),
+    // гостиная
+    { t: 'sconce', w: midL, at: 2.80, y: 1.75 }, { t: 'sconce', w: midL, at: 4.40, y: 1.75 },
+    E(tvW, 6.20, 0.9, 'sw'), E(tvW, 4.03, 0.3, 'so2'), E(midL, 4.85, 0.3, 'so2')
   ]);
 })();
